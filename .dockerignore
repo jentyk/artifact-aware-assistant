@@ -7,3 +7,6 @@
 *.log
 # Don't ignore the dist folder as we need it
 # !frontend/dist
+### dotenv template
+.env
+
