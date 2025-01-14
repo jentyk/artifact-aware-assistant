@@ -62,7 +62,8 @@ function App() {
 
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      const conversationType = urlParams.has('dumb') ? 'dumb' : 'smart';
+      const conversationType = urlParams.get('conversationType');
+      const model = urlParams.get('model');
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -72,7 +73,8 @@ function App() {
         body: JSON.stringify({ 
           messages: newMessages,
           artifacts: artifacts,
-          conversation_type: conversationType
+          conversation_type: conversationType,
+          model: model,
         })
       });
       
