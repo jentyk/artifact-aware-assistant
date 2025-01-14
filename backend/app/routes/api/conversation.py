@@ -2,6 +2,7 @@ import re
 import os
 
 import anthropic
+from ollama import Client
 
 
 class Artifact:
@@ -13,23 +14,25 @@ class Artifact:
 
     def __str__(self):
         return f'<artifact identifier="{self.identifier}" type="{self.type}" title="{self.title}">\n{self.content}\n</artifact>'
-    
+
     def __repr__(self):
         return f'Artifact(identifier="{self.identifier}", title="{self.title}")'
-    
+
     def dict(self):
         return {
-            'identifier': self.identifier,
-            'type': self.type,
-            'title': self.title,
-            'content': self.content,
+            "identifier": self.identifier,
+            "type": self.type,
+            "title": self.title,
+            "content": self.content,
         }
-    
+
+
 class Tool:
     def __init__(self, schema, callable):
         self.schema = schema
         self.callable = callable
         self.name = schema["name"]
+
 
 SYSTEM_MESSAGE = f"""\
 You are a helpful assistant.
@@ -123,22 +126,20 @@ Artifacts are self-contained pieces of content that can be referenced in the con
 </artifacts_info>
 """
 
+
 class Conversation:
     def __init__(self, tools=None, messages=None, artifacts=None):
-        self.client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         self.model = "claude-3-5-sonnet-20241022"
         self.messages = messages or []
         self.artifacts = artifacts or []
         self.tools = tools or []
-        
+
     def say(self, message):
         system_message = self._generate_system_message(self.artifacts)
         tools = [t.schema for t in self.tools]
-        
-        self.messages.append({
-            "role": "user", 
-            "content": message
-        })
+
+        self.messages.append({"role": "user", "content": message})
 
         response = self.client.messages.create(
             model=self.model,
@@ -151,25 +152,29 @@ class Conversation:
 
         # Handle potential tool use
         while response.stop_reason == "tool_use":
-            tool_result_messages  = []
+            tool_result_messages = []
             for block in response.content:
                 if block.type == "tool_use":
                     tool_use = block
                     tool_name = tool_use.name
                     tool_input = tool_use.input
                     tool_result = self._process_tool_call(tool_name, tool_input)
-                    tool_result_messages.append({
-                        "type": "tool_result",
-                        "tool_use_id": tool_use.id,
-                        "content": tool_result,
-                    })
+                    tool_result_messages.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": tool_use.id,
+                            "content": tool_result,
+                        }
+                    )
 
             self.messages.append({"role": "assistant", "content": response.content})
-            self.messages.append({    
-                "role": "user",
-                "content": tool_result_messages,
-            })
-            
+            self.messages.append(
+                {
+                    "role": "user",
+                    "content": tool_result_messages,
+                }
+            )
+
             # Get final response after tool use
             response = self.client.messages.create(
                 model=self.model,
@@ -179,26 +184,26 @@ class Conversation:
                 temperature=0.7,
                 tools=tools,
             )
-        
+
         assistant_message = response.content[0].text
         self.messages.append({"role": "assistant", "content": assistant_message})
         artifacts, messages = self._extract_messages_and_artifacts()
 
         return {
-            'messages': messages,
-            'artifacts': artifacts,
+            "messages": messages,
+            "artifacts": artifacts,
         }
-    
+
     def _process_tool_call(self, tool_name, tool_input):
         for tool in self.tools:
             if tool.name == tool_name:
                 return tool.callable(**tool_input)
         raise Exception(f"Tool {tool_name} not found")
-    
+
     def _generate_system_message(self, artifacts):
         artifacts_info = "\n".join([str(artifact) for artifact in artifacts])
         system_message = SYSTEM_MESSAGE
-        
+
         if artifacts:
             system_message += f"""\
             
@@ -217,7 +222,7 @@ class Conversation:
 
         # Process each message
         for message in self.messages:
-            content = message['content']
+            content = message["content"]
             new_message = {"role": message["role"]}
 
             # Process string content
@@ -240,19 +245,23 @@ class Conversation:
                         continue
 
                     # Handle dict-like items
-                    item_dict = item.dict() if hasattr(item, 'dict') else item
-                    
-                    if item_dict.get('type') == 'text':
-                        new_text, text_artifacts = self._process_content(item_dict['text'])
+                    item_dict = item.dict() if hasattr(item, "dict") else item
+
+                    if item_dict.get("type") == "text":
+                        new_text, text_artifacts = self._process_content(
+                            item_dict["text"]
+                        )
                         artifacts.extend(text_artifacts)
                         new_item = dict(item_dict)
-                        new_item['text'] = new_text
+                        new_item["text"] = new_text
                         new_content_list.append(new_item)
-                    elif item_dict.get('type') == 'tool_result':
-                        new_content, content_artifacts = self._process_content(item_dict['content'])
+                    elif item_dict.get("type") == "tool_result":
+                        new_content, content_artifacts = self._process_content(
+                            item_dict["content"]
+                        )
                         artifacts.extend(content_artifacts)
                         new_item = dict(item_dict)
-                        new_item['content'] = new_content
+                        new_item["content"] = new_content
                         new_content_list.append(new_item)
                     else:
                         new_content_list.append(item_dict)
@@ -272,53 +281,50 @@ class Conversation:
     def _process_content(self, text):
         """Helper method to process text content and extract artifacts"""
         artifacts = []
-        
+
         # Find all artifact blocks using regex
         artifact_pattern = r'<artifact\s+identifier="([^"]+)"\s+type="([^"]+)"\s+title="([^"]+)">(.*?)</artifact>'
-        
+
         # Keep track of where we last ended to build the new content
         last_end = 0
         new_content = ""
-        
+
         for match in re.finditer(artifact_pattern, text, re.DOTALL):
             # Add any text before this match
-            new_content += text[last_end:match.start()]
-            
+            new_content += text[last_end : match.start()]
+
             # Extract artifact info
             identifier = match.group(1)
             type_ = match.group(2)
             title = match.group(3)
             content = match.group(4).strip()
-            
+
             # Create and store artifact
             artifact = Artifact(identifier, type_, title, content)
             artifacts.append(artifact)
-            
+
             # Add anchor tag
             new_content += f'<a href="#{identifier}">{title}</a>'
-            
+
             last_end = match.end()
-        
+
         # Add any remaining text
         new_content += text[last_end:]
-        
+
         return new_content, artifacts
 
 
 class DumbConversation:
     def __init__(self, tools=None, messages=None, artifacts=None):
-        self.client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+        self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         self.model = "claude-3-5-sonnet-20241022"
         self.messages = messages or []
         self.artifacts = []  # DumbConversation doesn't support artifacts
         self.tools = tools or []
-        
+
     def say(self, message):
-        self.messages.append({
-            "role": "user", 
-            "content": message
-        })
-        
+        self.messages.append({"role": "user", "content": message})
+
         tools = [t.schema for t in self.tools]
         response = self.client.messages.create(
             model=self.model,
@@ -337,18 +343,22 @@ class DumbConversation:
                     tool_name = tool_use.name
                     tool_input = tool_use.input
                     tool_result = self._process_tool_call(tool_name, tool_input)
-                    tool_result_messages.append({
-                        "type": "tool_result",
-                        "tool_use_id": tool_use.id,
-                        "content": tool_result,
-                    })
-            
+                    tool_result_messages.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": tool_use.id,
+                            "content": tool_result,
+                        }
+                    )
+
             self.messages.append({"role": "assistant", "content": response.content})
-            self.messages.append({
-                "role": "user",
-                "content": tool_result_messages,
-            })
-            
+            self.messages.append(
+                {
+                    "role": "user",
+                    "content": tool_result_messages,
+                }
+            )
+
             response = self.client.messages.create(
                 model=self.model,
                 messages=self.messages,
@@ -356,15 +366,15 @@ class DumbConversation:
                 temperature=0.7,
                 tools=tools,
             )
-        
+
         assistant_message = response.content[0].text
         self.messages.append({"role": "assistant", "content": assistant_message})
-        
+
         return {
-            'messages': self._process_messages(),
-            'artifacts': [],
+            "messages": self._process_messages(),
+            "artifacts": [],
         }
-    
+
     def _process_tool_call(self, tool_name, tool_input):
         for tool in self.tools:
             if tool.name == tool_name:
@@ -374,22 +384,82 @@ class DumbConversation:
     def _process_messages(self):
         """Convert any dict-like objects in message content lists to regular dictionaries."""
         processed_messages = []
-        
+
         for message in self.messages:
             new_message = {"role": message["role"]}
             content = message["content"]
-            
+
             if isinstance(content, list):
                 new_content = []
                 for item in content:
-                    if hasattr(item, 'dict'):
+                    if hasattr(item, "dict"):
                         new_content.append(item.dict())
                     else:
                         new_content.append(item)
                 new_message["content"] = new_content
             else:
                 new_message["content"] = content
-                
+
             processed_messages.append(new_message)
-            
+
         return processed_messages
+
+
+class DumbConversationWithOllama(DumbConversation):
+    def __init__(self, tools=None, messages=None, model="llama3.3", artifacts=None):
+        self.client = Client(host="http://localhost:11434")
+        self.model = "llama3.3"
+        self.messages = messages or []
+        self.artifacts = []  # DumbConversation doesn't support artifacts
+        self.tools = tools or []
+
+    def say(self, message):
+        self.messages.append({"role": "user", "content": message})
+
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": t.schema["name"],
+                    "parameters": t.schema["input_schema"],
+                    "description": t.schema["description"],
+                },
+            }
+            for t in self.tools
+        ]
+        response = self.client.chat(
+            model=self.model, messages=self.messages, stream=False, tools=tools
+        )
+
+        # Handle potential tool use
+        while response.message.tool_calls:
+            if response.message.content:
+                self.messages.append(
+                    {"role": "assistant", "content": response.message.content}
+                )
+
+            for tc in response.message.tool_calls:
+                self.messages.append(
+                    {
+                        "role": "tool",
+                        "content": (
+                            self._process_tool_call(
+                                tc.function.name, tc.function.arguments
+                            )
+                        ),
+                        "name": tc.function.name,
+                    }
+                )
+
+            response = self.client.chat(
+                model=self.model,
+                messages=self.messages,
+                stream=False,
+            )
+
+        self.messages.append({"role": "assistant", "content": response.message.content})
+
+        return {
+            "messages": self._process_messages(),
+            "artifacts": [],
+        }

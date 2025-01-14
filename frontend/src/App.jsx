@@ -62,7 +62,7 @@ function App() {
 
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      const conversationType = urlParams.has('dumb') ? 'dumb' : 'smart';
+      const conversationType = urlParams.get('conversationType');
 
       const response = await fetch('/api/chat', {
         method: 'POST',
