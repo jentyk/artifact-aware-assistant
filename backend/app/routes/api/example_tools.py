@@ -93,7 +93,7 @@ def get_comparables(address):
 """)
     return str(artifact)
 
-def get_email_template():
+def get_email_template(*args, **kwargs):
     artifact = Artifact(
         identifier="98acb34d", 
         type="text/plain", 
