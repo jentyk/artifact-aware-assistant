@@ -1,7 +1,7 @@
 from .conversation import Artifact, Tool
 
 
-def get_listing(address):
+def get_listing(address: str):
     content = f"""\
 {{
     "address": "{address}",
@@ -26,19 +26,18 @@ def get_listing(address):
     ],
 }}
 """
-    
+
     artifact = Artifact(
-        identifier="18bacG4a",
-        type="application/json", 
-        title=address, 
-        content=content)
+        identifier="18bacG4a", type="application/json", title=address, content=content
+    )
     return str(artifact)
+
 
 def get_comparables(address):
     artifact = Artifact(
-        identifier="3baf9f83", 
-        type="application/json", 
-        title=f"{address} Comparables", 
+        identifier="3baf9f83",
+        type="application/json",
+        title=f"{address} Comparables",
         content="""\
 [
     {
@@ -90,14 +89,16 @@ def get_comparables(address):
         "zestimate": 191000
     }
 ]
-""")
+""",
+    )
     return str(artifact)
+
 
 def get_email_template():
     artifact = Artifact(
-        identifier="98acb34d", 
-        type="text/plain", 
-        title="Prospective Buyer Listing Email Template", 
+        identifier="98acb34d",
+        type="text/plain",
+        title="Prospective Buyer Listing Email Template",
         content="""
 Dear {buyer_name},
 
@@ -120,8 +121,10 @@ Would you like to schedule a viewing of this property? I have several time slots
 
 Best regards,
 Your Real Estate Agent
-""")
+""",
+    )
     return str(artifact)
+
 
 get_listing_schema = {
     "name": "get_listing",
@@ -131,11 +134,11 @@ get_listing_schema = {
         "properties": {
             "address": {
                 "type": "string",
-                "description": "The street address to look up"
+                "description": "The street address to look up",
             }
         },
-        "required": ["address"]
-    }
+        "required": ["address"],
+    },
 }
 
 get_comparables_schema = {
@@ -146,11 +149,11 @@ get_comparables_schema = {
         "properties": {
             "address": {
                 "type": "string",
-                "description": "The street address to find comparables for"
+                "description": "The street address to find comparables for",
             },
         },
-        "required": ["address"]
-    }
+        "required": ["address"],
+    },
 }
 
 # TODO - fill in the comp blanks
@@ -160,7 +163,7 @@ get_email_template_schema = {
     "input_schema": {
         "type": "object",
         "properties": {},
-    }
+    },
 }
 
 
