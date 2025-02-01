@@ -36,6 +36,7 @@ def chat():
 
     try:
         # Choose conversation type based on data
+        model = data.get("model")
         ConversationType = conversation_types.get(
             data.get("conversation_type"), DumbConversationWithOllama
         )

@@ -128,9 +128,15 @@ Artifacts are self-contained pieces of content that can be referenced in the con
 
 
 class Conversation:
-    def __init__(self, tools=None, messages=None, artifacts=None):
+    def __init__(
+        self,
+        tools=None,
+        messages=None,
+        artifacts=None,
+        model="claude-3-5-sonnet-20241022",
+    ):
         self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        self.model = "claude-3-5-sonnet-20241022"
+        self.model = model
         self.messages = messages or []
         self.artifacts = artifacts or []
         self.tools = tools or []
@@ -315,9 +321,15 @@ class Conversation:
 
 
 class DumbConversation:
-    def __init__(self, tools=None, messages=None, artifacts=None):
+    def __init__(
+        self,
+        tools=None,
+        messages=None,
+        artifacts=None,
+        model="claude-3-5-sonnet-20241022",
+    ):
         self.client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-        self.model = "claude-3-5-sonnet-20241022"
+        self.model = model
         self.messages = messages or []
         self.artifacts = []  # DumbConversation doesn't support artifacts
         self.tools = tools or []
@@ -406,9 +418,9 @@ class DumbConversation:
 
 
 class DumbConversationWithOllama(DumbConversation):
-    def __init__(self, tools=None, messages=None, model="llama3.3", artifacts=None):
+    def __init__(self, tools=None, messages=None, artifacts=None, model="llama3.3"):
         self.client = Client(host="http://localhost:11434")
-        self.model = "llama3.3"
+        self.model = model
         self.messages = messages or []
         self.artifacts = []  # DumbConversation doesn't support artifacts
         self.tools = tools or []
