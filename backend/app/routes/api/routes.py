@@ -5,6 +5,7 @@ from .conversation import (
     Artifact,
     DumbConversationWithOllama,
     MultiModelConversation,
+    get_multi_model_conversation,
 )
 from .example_tools import tools
 
@@ -41,14 +42,11 @@ def chat():
         model = data.get("model")
         base_url = data.get("baseUrl")
 
+        conversation = None
+
         if model:
-            ConversationType = MultiModelConversation
-            conversation = ConversationType(
-                tools=tools,
-                messages=messages,
-                artifacts=artifacts,
-                model=model,
-                base_url=base_url or None,
+            conversation = get_multi_model_conversation(
+                tools, artifacts, model, base_url
             )
 
         else:

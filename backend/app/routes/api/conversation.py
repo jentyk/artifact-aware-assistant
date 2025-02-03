@@ -7,6 +7,21 @@ from pydantic_ai import Agent, Tool as PydanticAiTool
 from pydantic_ai.models.openai import OpenAIModel
 
 
+MULTI_MODEL_CONVERSATION = None
+
+
+def get_multi_model_conversation(tools, artifacts, model, base_url):
+    global MULTI_MODEL_CONVERSATION
+    if not MULTI_MODEL_CONVERSATION:
+        MULTI_MODEL_CONVERSATION = MultiModelConversation(
+            tools=tools,
+            artifacts=artifacts,
+            model=model,
+            base_url=base_url,
+        )
+    return MULTI_MODEL_CONVERSATION
+
+
 class Artifact:
     def __init__(self, identifier, type, title, content):
         self.identifier = identifier
