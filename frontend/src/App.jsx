@@ -64,6 +64,12 @@ function App() {
       const urlParams = new URLSearchParams(window.location.search);
       const conversationType = urlParams.get('conversationType');
       const model = urlParams.get('model');
+      const baseUrl = urlParams.get('baseUrl');
+
+      console.log(JSON.stringify({
+        "model": model,
+        "baseUrl": baseUrl
+      }));
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -75,6 +81,7 @@ function App() {
           artifacts: artifacts,
           conversation_type: conversationType,
           model: model,
+          baseUrl: baseUrl,
         })
       });
       

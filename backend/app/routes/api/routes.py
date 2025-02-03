@@ -4,6 +4,7 @@ from .conversation import (
     DumbConversation,
     Artifact,
     DumbConversationWithOllama,
+    MultiModelConversation,
 )
 from .example_tools import tools
 
@@ -36,16 +37,33 @@ def chat():
 
     try:
         # Choose conversation type based on data
-        model = data.get("model")
-        ConversationType = conversation_types.get(
-            data.get("conversation_type"), DumbConversationWithOllama
-        )
 
-        conversation = ConversationType(
-            tools=tools,
-            messages=messages,
-            artifacts=artifacts,
-        )
+        model = data.get("model")
+        base_url = data.get("baseUrl")
+
+        if model:
+            ConversationType = MultiModelConversation
+            conversation = ConversationType(
+                tools=tools,
+                messages=messages,
+                artifacts=artifacts,
+                model=model,
+                base_url=base_url or None,
+            )
+
+        else:
+            ConversationType = (
+                DumbConversation
+                if data.get("conversation_type") == "dumb"
+                else Conversation
+            )
+
+            conversation = ConversationType(
+                tools=tools,
+                messages=messages,
+                artifacts=artifacts,
+            )
+
         response = conversation.say(user_message)
         messages = response["messages"]
         artifacts = response["artifacts"]

@@ -3,6 +3,8 @@ import os
 
 import anthropic
 from ollama import Client
+from pydantic_ai import Agent, Tool as PydanticAiTool
+from pydantic_ai.models.openai import OpenAIModel
 
 
 class Artifact:
@@ -470,6 +472,41 @@ class DumbConversationWithOllama(DumbConversation):
             )
 
         self.messages.append({"role": "assistant", "content": response.message.content})
+
+        return {
+            "messages": self._process_messages(),
+            "artifacts": [],
+        }
+
+
+class MultiModelConversation(DumbConversation):
+    def __init__(
+        self,
+        tools=None,
+        messages=None,
+        artifacts=None,
+        model=None,
+        base_url=None,
+    ):
+        self.messages = messages or []
+        self.artifacts = []  # DumbConversation doesn't support artifacts
+        self.tools = tools or []
+        self.agent = Agent(
+            (
+                model
+                if not base_url
+                else OpenAIModel(model_name=model, base_url=base_url)
+            ),
+            tools=[PydanticAiTool(t.callable) for t in self.tools],
+        )
+
+    def say(self, message):
+
+        response = self.agent.run_sync(user_prompt=message)
+
+        self.messages.append({"role": "user", "content": message})
+
+        self.messages.append({"role": "assistant", "content": response.data})
 
         return {
             "messages": self._process_messages(),
